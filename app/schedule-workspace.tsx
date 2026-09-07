@@ -1,0 +1,14 @@
+'use client';
+import { useState } from 'react';
+import { Detail } from './detail';
+import { scheduleRows } from './workspace-model';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { RotateCcw } from 'lucide-react';
+import type { Project, Action } from './projects';
+export function ScheduleWorkspace({items,initialProjectId,onAction}:{items:Project[];initialProjectId:number|null;onAction:(id:number,a:Action)=>boolean}){
+ const [from,setFrom]=useState(''),[to,setTo]=useState(''),[owner,setOwner]=useState('all'),[selected,setSelected]=useState(initialProjectId);
+ const invalidRange=!!from&&!!to&&to<from;
+ const rows=invalidRange?[]:scheduleRows(items,from,to,owner);
+ const active=items.find(p=>p.id===selected);
+ return <section className="panel schedule-panel"><div className="schedule-heading"><div><h2>촬영 예정 <span className="count">{rows.length}건</span></h2><p>{from||to?'선택한 기간의 촬영 일정을 표시합니다.':'전체 기간 · 촬영일과 시간순으로 표시합니다.'}</p></div><div className="schedule-filters"><label className="schedule-range"><span>촬영 기간</span><div className="date-range"><input aria-label="촬영 시작일" type="date" value={from} max={to||undefined} onChange={e=>setFrom(e.target.value)}/><i>–</i><input aria-label="촬영 종료일" type="date" value={to} min={from||undefined} onChange={e=>setTo(e.target.value)}/></div></label><label className="schedule-owner"><span>담당자</span><Select value={owner} onValueChange={v=>v&&setOwner(v)}><SelectTrigger aria-label="촬영 담당자 필터"><SelectValue>{owner==='all'?'전체 담당자':owner}</SelectValue></SelectTrigger><SelectContent><SelectItem value="all">전체 담당자</SelectItem>{Array.from(new Set(items.map(p=>p.owner))).map(n=><SelectItem key={n} value={n}>{n}</SelectItem>)}</SelectContent></Select></label>{(from||to||owner!=='all')&&<button className="schedule-reset" onClick={()=>{setFrom('');setTo('');setOwner('all')}}><RotateCcw size={15}/>전체 일정</button>}</div></div>{invalidRange&&<p className="schedule-filter-error" role="alert">종료일은 시작일보다 빠를 수 없습니다.</p>}<div className="schedule-list"><div className="schedule-row schedule-labels"><span>촬영일 · 시간</span><span>숙소 · 공간</span><span>담당자</span><span>최종 마감</span><span>작업</span></div>{rows.map(p=><button key={p.id} className="schedule-row schedule-entry" onClick={()=>setSelected(p.id)} aria-label={p.name+' 촬영 일정 상세 열기'}><span data-label="촬영일 · 시간"><strong>{p.date}</strong><small>{p.time}</small></span><span data-label="숙소 · 공간"><strong>{p.name}</strong><small>{p.region}</small></span><span data-label="담당자">{p.owner}</span><span data-label="최종 마감">{p.due}</span><span className="schedule-open">일정 확인 · 수정 →</span></button>)}</div>{!rows.length&&!invalidRange&&<div className="board-empty">해당 조건의 촬영 예정이 없습니다.{(from||to||owner!=='all')&&' 전체 일정 버튼을 눌러 다시 확인해 주세요.'}</div>}{active&&<Detail key={active.id} project={active} all={items} onClose={()=>setSelected(null)} onAction={a=>onAction(active.id,a)}/>}</section>
+}

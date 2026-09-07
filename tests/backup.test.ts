@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import { makeBackup, readBackup, backupLimit } from '../app/backup-model.ts';
+import { seed, transition } from '../app/projects.ts';
+const updated=seed.map(p=>p.id===6?transition(p,{type:'upload',files:[{name:'사진.png',url:'data:image/png;base64,AA=='}]}):p);
+assert.deepEqual(readBackup(makeBackup(updated)),JSON.parse(JSON.stringify(updated)));
+assert.equal(readBackup(makeBackup(updated))[5].uploads?.[0].name,'사진.png');
+assert.throws(()=>readBackup('{}'));
+assert.throws(()=>readBackup('{'));
+assert.throws(()=>readBackup(JSON.stringify({app:'stayflow',version:2,projects:seed})));
+assert.throws(()=>readBackup(JSON.stringify({app:'stayflow',version:1,projects:seed.map(p=>({...p,stage:99}))})));
+assert.throws(()=>readBackup(' '.repeat(backupLimit+1)));
+assert.deepEqual(readBackup(makeBackup(seed)),seed);
+console.log('PASS · backup roundtrip, uploads, schema/version rejection, size limit, existing seed compatibility');
+const sales=transition(transition(transition(transition(transition(seed[2],{type:'sales-scan'}),{type:'sales-check',index:0,checked:true}),{type:'sales-check',index:1,checked:true}),{type:'sales-check',index:2,checked:true}),{type:'sales-check',index:3,checked:true});
+const salesBackup=seed.map(p=>p.id===sales.id?sales:p);
+assert.deepEqual(readBackup(makeBackup(salesBackup)),JSON.parse(JSON.stringify(salesBackup)));
