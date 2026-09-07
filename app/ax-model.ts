@@ -94,7 +94,7 @@ export function axDashboardSummary(items: Project[]): AxSummaryTile[] {
   const sameDayGroups = new Set(active.filter(p => p.stage === 0).map(p => p.date + regionKey(p)));
   const bundles = active.filter(p => p.stage === 0).length - sameDayGroups.size;
   const classify = active.filter(p => p.stage === 1).reduce((n, p) => n + photoList(p).filter(f => !f.category).length, 0);
-  const precheck = active.filter(p => p.stage === 2 || p.stage === 3).reduce((n, p) => n + photoList(p).length, 0);
+  const precheck = active.filter(p => p.stage === 2 || p.stage === 3).reduce((n, p) => n + (p.uploads?.length || p.photos), 0);
   const captions = active.filter(p => p.stage === 4).reduce((n, p) => n + p.channels.filter(c => !c).length, 0);
   return [
     { label: '동선 묶기 제안', value: bundles, unit: '건', hint: '같은 날 · 같은 지역 촬영', view: 'schedule' },

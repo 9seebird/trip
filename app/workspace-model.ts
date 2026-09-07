@@ -1,3 +1,4 @@
+import { TODAY } from './board-model.ts';
 import type { Project } from './projects';
 export const workspaceViews = {
   schedule: { title:'촬영 일정 관리', step:'01', stages:[0], description:'촬영 일정과 담당자를 확인하고, 완료된 촬영을 사진 업로드로 넘깁니다.', queue:'촬영 예정', empty:'예정된 촬영이 없습니다.' },
@@ -10,13 +11,12 @@ export function isWorkspaceView(view:string):view is WorkspaceView {return Objec
 export function workspaceForStage(stage:number):WorkspaceView{return stage===0?'schedule':stage===1?'upload':stage<4?'review':'publish'}
 export const metricDestinations=[
   {view:'board',scope:'active'},
-  {view:'board',scope:'0'},
-  {view:'board',scope:'3'},
+  {view:'board',scope:'week'},
   {view:'board',scope:'overdue'},
   {view:'board',scope:'5'},
 ];
 export function workspaceQueue(items:Project[],view:WorkspaceView,scope='all'):Project[]{
-  return items.filter(p=>workspaceViews[view].stages.includes(p.stage)&&(scope==='all'||(scope==='today'?p.date==='2026-09-04':scope==='revision'?p.stage===2&&((p.photoReviews??[]).some(r=>!r.resolved)||!!p.note):p.stage===Number(scope)))).sort((a,b)=>{
+  return items.filter(p=>workspaceViews[view].stages.includes(p.stage)&&(scope==='all'||(scope==='today'?p.date===TODAY:scope==='revision'?p.stage===2&&((p.photoReviews??[]).some(r=>!r.resolved)||!!p.note):p.stage===Number(scope)))).sort((a,b)=>{
     if(view==='review'&&a.stage!==b.stage)return b.stage-a.stage;
     if(view==='publish'&&a.stage!==b.stage)return a.stage-b.stage;
     return (view==='schedule'?a.date+a.time:a.due).localeCompare(view==='schedule'?b.date+b.time:b.due);

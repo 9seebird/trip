@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Camera, CalendarDays, Upload, SlidersHorizontal, CheckCheck, Globe, ArrowRight, ArrowUpRight, X } from 'lucide-react';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { stages, images, type Project } from './projects';
-import { boardColumns, boardActions, boardFilterLabels } from './board-model';
+import { boardColumns, boardActions, boardFilterLabels, crossStageFilters, isOverdue } from './board-model';
 
 const icons = [CalendarDays, Upload, SlidersHorizontal, CheckCheck, Globe, CheckCheck];
 export function ContentBoard({ items, filter, query, onFilter, onQuery, onClear, onOpen, onAdvance }: {
@@ -30,7 +30,7 @@ export function ContentBoard({ items, filter, query, onFilter, onQuery, onClear,
       <input aria-label="콘텐츠 검색" placeholder="숙소, 지역, 담당자 검색" value={query} onChange={e => onQuery(e.target.value)} />
       <Select value={filter} onValueChange={value => value && onFilter(value)}>
         <SelectTrigger aria-label="콘텐츠 단계 필터"><SelectValue>{boardFilterLabels[filter]??'모든 단계'}</SelectValue></SelectTrigger>
-        <SelectContent><SelectItem value="all">모든 단계</SelectItem><SelectItem value="active">진행 중만</SelectItem><SelectItem value="overdue">마감 지연만</SelectItem>
+        <SelectContent><SelectItem value="all">모든 단계</SelectItem><SelectItem value="active">진행 중만</SelectItem><SelectItem value="overdue">마감 지연만</SelectItem><SelectItem value="week">이번 주 마감</SelectItem>
           {stages.map((stage, i) => <SelectItem key={stage} value={String(i)}>{stage}</SelectItem>)}
         </SelectContent>
       </Select>
@@ -40,7 +40,7 @@ export function ContentBoard({ items, filter, query, onFilter, onQuery, onClear,
       <button onClick={onClear}><X size={15} />필터 해제 · 전체 보기</button>
     </div>}
     <div className="mobile-stage-picker" aria-label="표시할 제작 단계">{columns.map(c=><button key={c.stage} aria-pressed={shownStage===c.stage} onClick={()=>setMobileStage(c.stage)}>{stages[c.stage]} <b>{c.projects.length}</b></button>)}</div>
-    <div className={['all','active','overdue'].includes(filter) ? 'board' : 'board board-focused'}>
+    <div className={crossStageFilters.includes(filter) ? 'board' : 'board board-focused'}>
       {columns.map(({ stage, projects }) => {
         const Icon = icons[stage];
         return <section className="board-column" data-mobile-visible={stage===shownStage} key={stage} aria-label={stages[stage]}>
@@ -52,7 +52,7 @@ export function ContentBoard({ items, filter, query, onFilter, onQuery, onClear,
               <img src={p.uploads?.[0]?.url ?? images[p.cover]} alt={p.uploads?.length ? '업로드한 촬영 사진' : '참고용 숙소 사진'} />
               <strong>{p.name}<ArrowUpRight size={15} /></strong><p>{p.region}</p>
             </button>
-            <div className="board-card-meta"><span>{p.owner}</span><span className={p.stage < 5 && p.due < '2026-09-04' ? 'overdue' : ''}>{p.due.slice(5).replace('-', '.')} 마감</span></div>
+            <div className="board-card-meta"><span>{p.owner}</span><span className={isOverdue(p) ? 'overdue' : ''}>{p.due.slice(5).replace('-', '.')} 마감</span></div>
             <div className="board-photo-count"><Camera size={14} />{p.photos}장{p.stage >= 4 && <span>{p.channels.filter(Boolean).length}/3 채널 완료</span>}</div>
             {p.note && <p className="board-revision">수정 요청: {p.note}</p>}
             <button className={`board-action board-action-${stage}`} onClick={() => onOpen(p)} aria-label={`${p.name} ${boardActions[stage].label}`}><Icon size={16} />{boardActions[stage].label}<ArrowRight size={15} /></button>

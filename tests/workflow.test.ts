@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { seed, transition, validStored } from '../app/projects.ts';
+import { seed, transition, validStored, mergeWithSeed } from '../app/projects.ts';
 import { boardColumns, defaultDetailTab, boardActions } from '../app/board-model.ts';
 import { workspaceQueue, workspaceForStage, isWorkspaceView, metricDestinations, scheduleRows } from '../app/workspace-model.ts';
 import { comparisonState } from '../app/comparison-model.ts';
@@ -77,7 +77,7 @@ assert.equal(workspaceQueue(seed,'schedule').length,2);
 assert.equal(workspaceQueue(seed,'upload')[0].name,'모먼트 부산');
 assert.equal(workspaceQueue(seed,'review').length,3);
 assert.equal(workspaceQueue(seed,'review')[0].stage,3);
-assert.equal(workspaceQueue(seed,'publish').length,2);
+assert.equal(workspaceQueue(seed,'publish').length,4);
 assert.equal(workspaceQueue(seed,'publish')[0].stage,4);
 const moved=seed.map(p=>p.id===4?transition(p,{type:'advance'}):p);
 assert.equal(workspaceQueue(moved,'schedule').length,1);
@@ -90,14 +90,16 @@ assert.deepEqual(comparisonState(50),{before:50,after:50,showBefore:true,showAft
 assert.equal(comparisonState(-10).before,0);
 assert.equal(comparisonState(120).before,100);
 assert.equal(comparisonState(NaN).before,50);
-assert.deepEqual(metricDestinations,[{view:'board',scope:'active'},{view:'board',scope:'0'},{view:'board',scope:'3'},{view:'board',scope:'overdue'},{view:'board',scope:'5'}]);
+assert.deepEqual(metricDestinations,[{view:'board',scope:'active'},{view:'board',scope:'week'},{view:'board',scope:'overdue'},{view:'board',scope:'5'}]);
 assert.equal(boardColumns(seed,'active','').reduce((n,c)=>n+c.projects.length,0),7);
 assert.equal(boardColumns(seed,'overdue','').reduce((n,c)=>n+c.projects.length,0),1);
+assert.equal(boardColumns(seed,'week','').reduce((n,c)=>n+c.projects.length,0),6);
+assert.equal(boardColumns(seed,'week','').length,6);
 assert.equal(workspaceQueue(seed,'schedule','today').length,2);
 assert.equal(workspaceQueue(seed,'review','3').length,2);
 const future=seed.map(p=>p.id===4?{...p,date:'2026-09-05'}:p);
 assert.equal(workspaceQueue(future,'schedule','today').length,1);
-assert.equal(workspaceQueue(seed,'publish','5').length,1);
+assert.equal(workspaceQueue(seed,'publish','5').length,3);
 assert.equal(workspaceQueue([transition(seed[0],{type:'reject',note:'노출 수정'})],'review','3').length,0);
 console.log('PASS · comparison endpoints, dashboard destinations, active/overdue/today/review filters, filtered handoff');
 for(let stage=1;stage<=5;stage++){
@@ -170,3 +172,21 @@ assert.throws(()=>transition(seed[0],{type:'sales-scan'}));
 assert.ok(validStored(seed.map(p=>p.id===sales.id?sales:p)));
 assert.ok(!validStored(seed.map(p=>({...p,salesReview:{url:'javascript:x',scanned:true,checks:[true,true,true,true],approved:true}}))));
 console.log('PASS · sales channel scan, human checks, approval invalidation, URL safety and persistence');
+
+// 이전 버전 저장 데이터(시드 8건) 호환 · 새 시드 항목 병합 · 업로드 사진 수 일관성
+const legacy=seed.slice(0,8);
+assert.ok(validStored(legacy));
+assert.ok(!validStored([]));
+assert.ok(!validStored([...legacy,legacy[0]]));
+assert.ok(!validStored([{...legacy[0],id:999}]));
+const merged=mergeWithSeed(legacy.map(p=>p.id===1?{...p,note:'저장된 메모'}:p));
+assert.equal(merged.length,seed.length);
+assert.equal(merged.find(p=>p.id===1)?.note,'저장된 메모');
+assert.ok(merged.some(p=>p.id===10));
+const rolledBack=transition(seed.find(p=>p.id===2)!,{type:'rollback',reason:'재촬영'});
+const firstUpload=transition(rolledBack,{type:'upload',files:[{name:'a.png',url:'data:image/png;base64,AAAA'}]});
+assert.equal(firstUpload.photos,1);
+const removedAll=transition(firstUpload,{type:'remove-uploads',indices:[0]});
+assert.equal(removedAll.photos,0);
+assert.throws(()=>transition(removedAll,{type:'advance'}),/사진을 먼저/);
+console.log('PASS · legacy store compatibility, seed merge, upload photo count consistency');

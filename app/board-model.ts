@@ -1,7 +1,7 @@
 import type { Project } from './projects';
 
 export type DetailTab = 'schedule' | 'photos' | 'channels';
-export const boardFilterLabels:Record<string,string>={'all':'모든 단계','active':'진행 중만','overdue':'마감 지연만','0':'촬영 예정','1':'사진 업로드','2':'보정 중','3':'검수 대기','4':'채널 게시','5':'완료'};
+export const boardFilterLabels:Record<string,string>={'all':'모든 단계','active':'진행 중만','overdue':'마감 지연만','week':'이번 주 마감','0':'촬영 예정','1':'사진 업로드','2':'보정 중','3':'검수 대기','4':'채널 게시','5':'완료'};
 
 export function defaultDetailTab(stage: number): DetailTab {
   return stage === 0 ? 'schedule' : stage >= 4 ? 'channels' : 'photos';
@@ -16,15 +16,24 @@ export const boardActions = [
   { label: '게시 결과 확인', hint: '모든 채널 게시가 완료되었습니다.' },
 ];
 
+export const TODAY = '2026-09-04';
+export const WEEK_END = '2026-09-10';
+export const todayLabel = '9월 4일';
+export const weekLabel = '9월 4일 ~ 10일';
+export const crossStageFilters = ['all', 'active', 'overdue', 'week'];
+export const isOverdue = (p: Project) => p.stage < 5 && p.due < TODAY;
+export const isDueThisWeek = (p: Project) => p.stage < 5 && p.due >= TODAY && p.due <= WEEK_END;
+
 export function boardColumns(items: Project[], filter: string, query: string) {
   const search = query.trim().toLocaleLowerCase();
-  const stages = ['all','active','overdue'].includes(filter) ? [0, 1, 2, 3, 4, 5] : [Number(filter)];
+  const stages = crossStageFilters.includes(filter) ? [0, 1, 2, 3, 4, 5] : [Number(filter)];
   return stages.filter(stage => Number.isInteger(stage) && stage >= 0 && stage < 6)
     .map(stage => ({
       stage,
       projects: items.filter(p => p.stage === stage &&
         (filter !== 'active' || p.stage < 5) &&
-        (filter !== 'overdue' || (p.stage < 5 && p.due < '2026-09-04')) &&
+        (filter !== 'overdue' || isOverdue(p)) &&
+        (filter !== 'week' || isDueThisWeek(p)) &&
         `${p.name} ${p.region} ${p.owner}`.toLocaleLowerCase().includes(search)),
     }));
 }
