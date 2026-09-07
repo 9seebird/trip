@@ -200,3 +200,12 @@ assert.equal(bulk.history?.[0],'2장 · 객실 일괄 분류');
 assert.throws(()=>transition(twoUp,{type:'photo-category-bulk',indices:[5],category:'객실'}),/사진과 촬영 항목/);
 assert.throws(()=>transition(twoUp,{type:'photo-category-bulk',indices:[0],category:'거실'}),/사진과 촬영 항목/);
 console.log('PASS · bulk photo categorization');
+
+// 분류된 사진이 있으면 추가 업로드·삭제 후에도 체크리스트 유지
+const kept=transition(transition(twoUp,{type:'photo-category-bulk',indices:[0,1],category:'객실'}),{type:'upload',files:[{name:'d.png',url:'data:image/png;base64,DDDD'}]});
+assert.deepEqual(kept.shots,[true,false,false,false]);
+assert.equal(kept.uploads?.[3].category,undefined);
+const trimmed=transition(kept,{type:'remove-uploads',indices:[0]});
+assert.deepEqual(trimmed.shots,[true,false,false,false]);
+assert.deepEqual(transition(trimmed,{type:'remove-uploads',indices:[0]}).shots,[false,false,false,false]);
+console.log('PASS · checklist derived from categories survives upload/remove');

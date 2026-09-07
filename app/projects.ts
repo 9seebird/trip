@@ -79,7 +79,7 @@ export function transition(p:Project,action:Action):Project{
  case 'upload':
   if(p.stage!==1)throw new Error('사진 업로드 단계에서만 사진을 추가할 수 있습니다.');
   if(!action.files.length)throw new Error('사진을 선택해 주세요.');
-  result={...p,uploads:[...(p.uploads??[]),...action.files],photos:p.uploads?.length?p.photos+action.files.length:action.files.length,shots:[false,false,false,false],photoReviews:p.uploads?.length?p.photoReviews:[],channels:[false,false,false],salesReview:p.salesReview?{...p.salesReview,scanned:false,checks:[false,false,false,false],approved:false}:undefined,recheck:p.recheck};entry=action.files.length+'장 사진 추가';break;
+  const combined:NonNullable<Project['uploads']>=[...(p.uploads??[]),...action.files];result={...p,uploads:combined,photos:p.uploads?.length?p.photos+action.files.length:action.files.length,shots:shotNames.map(name=>combined.some(f=>f.category===name)),photoReviews:p.uploads?.length?p.photoReviews:[],channels:[false,false,false],salesReview:p.salesReview?{...p.salesReview,scanned:false,checks:[false,false,false,false],approved:false}:undefined,recheck:p.recheck};entry=action.files.length+'장 사진 추가';break;
  case 'photo-category': {
   if(p.stage!==1||!p.uploads?.[action.index]||!shotNames.includes(action.category))throw new Error('사진과 촬영 항목을 확인해 주세요.');
   const categorized=p.uploads.map((f,i)=>i===action.index?{...f,category:action.category}:f);
@@ -95,7 +95,7 @@ export function transition(p:Project,action:Action):Project{
   const unique=new Set(action.indices);
   if(p.stage!==1||!p.uploads||!action.indices.length||unique.size!==action.indices.length||action.indices.some(i=>!Number.isInteger(i)||i<0||i>=p.uploads!.length))throw new Error('삭제할 업로드 사진을 다시 선택해 주세요.');
   const removed=[...unique].sort((a,b)=>a-b);
-  result={...p,uploads:p.uploads.filter((_,i)=>!unique.has(i)),photos:p.uploads.length-unique.size,shots:[false,false,false,false],photoReviews:(p.photoReviews??[]).filter(r=>!unique.has(r.index)).map(r=>({...r,index:r.index-removed.filter(i=>i<r.index).length})),channels:[false,false,false],salesReview:p.salesReview?{...p.salesReview,scanned:false,checks:[false,false,false,false],approved:false}:undefined};entry=unique.size+'장 사진 삭제';break;
+  const remaining=p.uploads.filter((_,i)=>!unique.has(i));result={...p,uploads:remaining,photos:remaining.length,shots:shotNames.map(name=>remaining.some(f=>f.category===name)),photoReviews:(p.photoReviews??[]).filter(r=>!unique.has(r.index)).map(r=>({...r,index:r.index-removed.filter(i=>i<r.index).length})),channels:[false,false,false],salesReview:p.salesReview?{...p.salesReview,scanned:false,checks:[false,false,false,false],approved:false}:undefined};entry=unique.size+'장 사진 삭제';break;
  }
  }
  return {...result,history:[entry,...(p.history??[])].slice(0,12)};
