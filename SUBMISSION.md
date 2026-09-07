@@ -1,7 +1,7 @@
 # StayFlow — 콘텐츠 제작 운영 관리 목업 사이트
 
 **과제명** 콘텐츠 제작 운영 관리 목업 사이트 제작
-**작성자** 구본세 (전산담당)
+**작성자** 구본세
 **데모 주소** https://stayflow.trendkit.app · **소스** https://github.com/9seebird/trip
 
 ---
