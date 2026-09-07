@@ -17,10 +17,10 @@ export function ContentBoard({ items, filter, query, onFilter, onQuery, onClear,
   onAdvance: (project: Project) => void;
 }) {
   const columns = boardColumns(items, filter, query);
-  const firstFilled=(columns.find(c=>c.projects.length)??columns[0])?.stage;
-  const [mobileStage,setMobileStage]=useState<number|undefined>(firstFilled);
-  useEffect(()=>{setMobileStage(firstFilled)},[filter,query,firstFilled]);
-  const shownStage=columns.some(c=>c.stage===mobileStage)?mobileStage:firstFilled;
+  // 좁은 폭: 기본은 모든 단계를 세로로 쌓아 보이고(빈 단계는 접힘), 단계 칩을 누르면 그 단계만 본다.
+  const [mobileStage,setMobileStage]=useState<number|'all'>('all');
+  useEffect(()=>{setMobileStage('all')},[filter,query]);
+  const shownStage:number|'all'=mobileStage==='all'||columns.some(c=>c.stage===mobileStage)?mobileStage:'all';
   const total = columns.reduce((count, column) => count + column.projects.length, 0);
   const filtered = filter !== 'all' || !!query.trim();
   return <section className="panel board-panel">
@@ -39,11 +39,14 @@ export function ContentBoard({ items, filter, query, onFilter, onQuery, onClear,
       <span>{boardFilterLabels[filter]??'모든 단계'}{query.trim() && ` · 검색 “${query.trim()}”`} · {total}건 표시 중</span>
       <button onClick={onClear}><X size={15} />필터 해제 · 전체 보기</button>
     </div>}
-    <div className="mobile-stage-picker" aria-label="표시할 제작 단계">{columns.map(c=><button key={c.stage} aria-pressed={shownStage===c.stage} onClick={()=>setMobileStage(c.stage)}>{stages[c.stage]} <b>{c.projects.length}</b></button>)}</div>
-    <div className={crossStageFilters.includes(filter) ? 'board' : 'board board-focused'}>
+    {columns.length>1&&<div className="mobile-stage-picker" aria-label="표시할 제작 단계">
+      <button aria-pressed={shownStage==='all'} onClick={()=>setMobileStage('all')}>전체 <b>{total}</b></button>
+      {columns.map(c=><button key={c.stage} aria-pressed={shownStage===c.stage} onClick={()=>setMobileStage(shownStage===c.stage?'all':c.stage)}>{stages[c.stage]} <b>{c.projects.length}</b></button>)}
+    </div>}
+    <div className={crossStageFilters.includes(filter) ? 'board' : 'board board-focused'} data-mobile-mode={shownStage==='all'?'all':'single'}>
       {columns.map(({ stage, projects }) => {
         const Icon = icons[stage];
-        return <section className="board-column" data-mobile-visible={stage===shownStage} key={stage} aria-label={stages[stage]}>
+        return <section className="board-column" data-mobile-visible={shownStage==='all'||stage===shownStage} data-empty={projects.length===0} key={stage} aria-label={stages[stage]}>
           <h3><span className={`stage-dot dot-${stage}`} />{stages[stage]}<span>{projects.length}</span></h3>
           <p className="column-hint">{boardActions[stage].hint}</p>
           {projects.length === 0 && <div className="board-empty">{query.trim() ? '검색 결과가 없습니다.' : '이 단계의 콘텐츠가 없습니다.'}</div>}
