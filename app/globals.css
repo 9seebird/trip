@@ -191,3 +191,4 @@ body{word-break:keep-all;overflow-wrap:break-word}button{word-break:keep-all}.bo
 .board-panel .board-focused .board-column>h3,.board-panel .board-focused .board-column>.column-hint,.board-panel .board-focused .board-column>.board-empty{grid-column:1/-1}
 .board-panel .board-focused .board-column>h3{margin-bottom:0}
 .board-panel .board-focused .board-card{margin:0}
+.photo-selection-actions{flex-wrap:wrap;align-items:center}.photo-bulk-category{height:38px;min-width:190px;font-size:13px!important;background:#fff}.photo-bulk-category[data-disabled],.photo-bulk-category:disabled{opacity:.55}

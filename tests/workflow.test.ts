@@ -190,3 +190,13 @@ const removedAll=transition(firstUpload,{type:'remove-uploads',indices:[0]});
 assert.equal(removedAll.photos,0);
 assert.throws(()=>transition(removedAll,{type:'advance'}),/사진을 먼저/);
 console.log('PASS · legacy store compatibility, seed merge, upload photo count consistency');
+
+// 선택 사진 일괄 분류
+const twoUp=transition(rolledBack,{type:'upload',files:[{name:'a.png',url:'data:image/png;base64,AAAA'},{name:'b.png',url:'data:image/png;base64,BBBB'},{name:'c.png',url:'data:image/png;base64,CCCC'}]});
+const bulk=transition(twoUp,{type:'photo-category-bulk',indices:[0,2],category:'객실'});
+assert.deepEqual(bulk.uploads?.map(f=>f.category),['객실',undefined,'객실']);
+assert.deepEqual(bulk.shots,[true,false,false,false]);
+assert.equal(bulk.history?.[0],'2장 · 객실 일괄 분류');
+assert.throws(()=>transition(twoUp,{type:'photo-category-bulk',indices:[5],category:'객실'}),/사진과 촬영 항목/);
+assert.throws(()=>transition(twoUp,{type:'photo-category-bulk',indices:[0],category:'거실'}),/사진과 촬영 항목/);
+console.log('PASS · bulk photo categorization');

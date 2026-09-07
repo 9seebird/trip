@@ -20,7 +20,7 @@ export const images=Array.from({length:24},(_,i)=>`covers/stay-${i+1}.jpg`);
 export const shotNames=['객실','욕실','외관','편의시설'];
 export function safeUrl(value:string){try{const u=new URL(value);return ['https:','http:'].includes(u.protocol)&&!u.username&&!u.password}catch{return false}}
 export function photoList(p:Project){return p.photos===0?[]:p.uploads?.length?p.uploads:[{name:'대표 컷',category:'객실',url:images[p.cover]},{name:'참고 컷',category:'외관',url:images[(p.cover+1)%images.length]},{name:'참고 컷',category:'편의시설',url:images[(p.cover+2)%images.length]}]}
-export type Action = {type:'sales-url';url:string}|{type:'sales-scan'}|{type:'sales-check';index:number;checked:boolean}|{type:'sales-approve'}| {type:'shot';index:number;checked:boolean}|{type:'url';index:number;url:string}|{type:'photo-review';index:number;note:string;resolved:boolean}| {type:'advance'} | {type:'rollback';reason:string} | {type:'reject';note:string} | {type:'channel';index:number} | {type:'schedule';date:string;time:string;due:string;owner:string} | {type:'upload';files:{name:string;url:string}[]} | {type:'photo-category';index:number;category:string} | {type:'remove-uploads';indices:number[]};
+export type Action = {type:'sales-url';url:string}|{type:'sales-scan'}|{type:'sales-check';index:number;checked:boolean}|{type:'sales-approve'}| {type:'shot';index:number;checked:boolean}|{type:'url';index:number;url:string}|{type:'photo-review';index:number;note:string;resolved:boolean}| {type:'advance'} | {type:'rollback';reason:string} | {type:'reject';note:string} | {type:'channel';index:number} | {type:'schedule';date:string;time:string;due:string;owner:string} | {type:'upload';files:{name:string;url:string}[]} | {type:'photo-category';index:number;category:string} | {type:'photo-category-bulk';indices:number[];category:string} | {type:'remove-uploads';indices:number[]};
 export function transition(p:Project,action:Action):Project{
  let result:Project;let entry='';
  switch(action.type){
@@ -84,6 +84,12 @@ export function transition(p:Project,action:Action):Project{
   if(p.stage!==1||!p.uploads?.[action.index]||!shotNames.includes(action.category))throw new Error('사진과 촬영 항목을 확인해 주세요.');
   const categorized=p.uploads.map((f,i)=>i===action.index?{...f,category:action.category}:f);
   result={...p,uploads:categorized,shots:shotNames.map(name=>categorized.some(f=>f.category===name))};entry=p.uploads[action.index].name+' · '+action.category+' 분류';break;
+ }
+ case 'photo-category-bulk': {
+  const targets=new Set(action.indices);
+  if(p.stage!==1||!p.uploads||!action.indices.length||!shotNames.includes(action.category)||action.indices.some(i=>!Number.isInteger(i)||!p.uploads?.[i]))throw new Error('사진과 촬영 항목을 확인해 주세요.');
+  const bulk=p.uploads.map((f,i)=>targets.has(i)?{...f,category:action.category}:f);
+  result={...p,uploads:bulk,shots:shotNames.map(name=>bulk.some(f=>f.category===name))};entry=targets.size+'장 · '+action.category+' 일괄 분류';break;
  }
  case 'remove-uploads': {
   const unique=new Set(action.indices);
